@@ -14,7 +14,9 @@ import {
   close_reasons
 } from "../packet.mjs";
 import { options } from "./options.mjs";
-import { MOTDExtension, UDPExtension, serialize_extensions } from "../extensions.mjs";
+import { MOTDExtension, UDPExtension, serialize_extensions, parse_extensions } from "../extensions.mjs";
+
+export class HandshakeError extends Error {}
 
 export class ServerStream {
   static buffer_size = 128;
@@ -120,6 +122,9 @@ export class ServerConnection {
     this.streams = {};
     this.conn_id = get_conn_id();
 
+    this.server_exts = {};
+    this.client_exts = {};
+
     if (this.wisp_version == 2 && this.wisp_extensions === null) {
       this.add_extensions();
     }
@@ -142,17 +147,7 @@ export class ServerConnection {
 
     //send initial info packet for wisp v2
     if (this.wisp_version == 2) {
-      let ext_buffer = serialize_extensions(this.wisp_extensions);
-      let info_packet = new WispPacket({
-        type: InfoPayload.type,
-        stream_id: 0,
-        payload: new InfoPayload({
-          major_ver: this.wisp_version,
-          minor_ver: 0,
-          extensions: ext_buffer
-        })
-      });
-      this.ws.send(info_packet);
+      await this.setup_wisp_v2()
     }
 
     //send initial continue packet
@@ -165,13 +160,48 @@ export class ServerConnection {
     });
     this.ws.send(continue_packet);
 
-    if (typeof this.ws.ws.ping !== "function") {
-      return;  
+    if (typeof this.ws.ws.ping === "function") {
+      this.ping_task = setInterval(() => {
+        logging.debug(`(${this.conn_id}) sending websocket ping`);
+        this.ws.ws.ping();
+      }, this.ping_interval * 1000);  
     }
-    this.ping_task = setInterval(() => {
-      logging.debug(`(${this.conn_id}) sending websocket ping`);
-      this.ws.ws.ping();
-    }, this.ping_interval * 1000);
+  }
+
+  async setup_wisp_v2() {
+    let ext_buffer = serialize_extensions(this.wisp_extensions);
+    let info_packet = new WispPacket({
+      type: InfoPayload.type,
+      stream_id: 0,
+      payload: new InfoPayload({
+        major_ver: this.wisp_version,
+        minor_ver: 0,
+        extensions: ext_buffer
+      })
+    });
+    this.ws.send(info_packet);
+
+    //wait for the client's info packet
+    let data = await this.ws.recv();
+    let buffer = new WispBuffer(new Uint8Array(data));
+    let packet = WispPacket.parse_all(buffer);
+
+    if (packet.type !== InfoPayload.type) {
+      logging.warn(`(${this.conn_id}) handshake error: unexpected packet of type ${packet.type}`);
+      await this.cleanup();
+      throw new HandshakeError();
+    }
+
+    //figure out the common extensions
+    let client_extensions = parse_extensions(packet.payload.extensions, this.wisp_extensions, "server");
+    for (let client_ext of client_extensions) {
+      for (let server_ext of this.wisp_extensions) {
+        if (server_ext.id === client_ext.id) {
+          this.server_exts[server_ext.id] = server_ext;
+          this.client_exts[client_ext.id] = client_ext;
+        }
+      }
+    }
   }
 
   create_stream(stream_id, type, hostname, port) {
@@ -250,8 +280,13 @@ export class ServerConnection {
       if (data == null) {
         break; //websocket closed
       }
+      if (typeof data === "string") {
+        logging.warn(`(${this.conn_id}) routing a packet failed - unexpected ws text frame`);
+        continue;
+      }
       
       try {
+        //note: data is an arraybuffer so the uint8array constructor does not copy
         this.route_packet(new WispBuffer(new Uint8Array(data)));
       }
       catch (error) {
@@ -259,11 +294,16 @@ export class ServerConnection {
       }
     }
     
+    await this.cleanup();
+  }
+
+  async cleanup() {
     //clean up all streams when the websocket is closed
     for (let stream_id of Object.keys(this.streams)) {
       await this.close_stream(stream_id);
     }
     clearInterval(this.ping_task);
     logging.info(`(${this.conn_id}) wisp connection closed`);
+    this.ws.close();
   }
 }

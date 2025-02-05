@@ -113,7 +113,7 @@ export class MOTDExtension extends BaseExtension {
   static Client = EmptyPayload;
 }
 
-export function parse_extensions(payload_buffer, valid_extensions) {
+export function parse_extensions(payload_buffer, valid_extensions, role) {
   let index = 0;
   let parsed_extensions = [];
   while (payload_buffer) {
@@ -127,7 +127,7 @@ export function parse_extensions(payload_buffer, valid_extensions) {
       ext_class = extension.constructor;
       break;
     }
-    let ext_parsed = ext_class.parse(ext_payload, role, ext_class);
+    let ext_parsed = ext_class.parse(ext_payload, role);
     parsed_extensions.push(ext_parsed);
     payload_buffer = payload_buffer.slice(5 + ext_len);
   }

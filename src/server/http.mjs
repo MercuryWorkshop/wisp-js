@@ -3,7 +3,7 @@ import * as compat from "../compat.mjs";
 
 import { options } from "./options.mjs";
 import { AccessDeniedError } from "./filter.mjs";
-import { ServerConnection } from "./connection.mjs";
+import { ServerConnection, HandshakeError } from "./connection.mjs";
 import { WSProxyConnection } from "./wsproxy.mjs";
 import { is_node, assert_on_node } from "./net.mjs";
 
@@ -42,6 +42,7 @@ export function routeRequest(request, socket, head, conn_options={}) {
 }
 
 async function create_connection(ws, path, request, conn_options) {
+  ws.binaryType = "arraybuffer";
   let client_ip = request.socket.address().address;
   let real_ip = parse_real_ip(request.headers, client_ip);
   logging.info(`new connection on ${path} from ${real_ip}`);
@@ -61,6 +62,7 @@ async function create_connection(ws, path, request, conn_options) {
 
   catch (error) {
     ws.close();
+    if (error instanceof HandshakeError) return;
     if (error instanceof AccessDeniedError) return;
     logging.error("Uncaught server error:\n" + error.stack);
   }
