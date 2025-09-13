@@ -197,7 +197,7 @@ export class ServerConnection {
     }
 
     //figure out the common extensions
-    let client_extensions = parse_extensions(packet.payload.extensions, this.wisp_extensions, "server");
+    let client_extensions = parse_extensions(packet.payload.extensions, this.wisp_extensions, "client");
     for (let client_ext of client_extensions) {
       for (let server_ext of this.wisp_extensions) {
         if (server_ext.id === client_ext.id) {

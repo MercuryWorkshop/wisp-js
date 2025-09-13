@@ -28,9 +28,9 @@ export class BaseExtension {
   static parse(ext_class, buffer, role) {
     let extension = new ext_class({});
     if (role === "client")
-      extension.payload = this.Client.parse(buffer.slice(5));
+      extension.payload = ext_class.Client.parse(buffer.slice(5));
     else if (role === "server")
-      extension.payload = this.Server.parse(buffer.slice(5));
+      extension.payload = ext_class.Server.parse(buffer.slice(5));
     else 
       throw TypeError("invalid role");
     return extension;
@@ -129,8 +129,10 @@ export function parse_extensions(payload_buffer, valid_extensions, role) {
       ext_class = extension.constructor;
       break;
     }
-    let ext_parsed = BaseExtension.parse(ext_class, ext_payload, role);
-    parsed_extensions.push(ext_parsed);
+    if (ext_class) {
+      let ext_parsed = BaseExtension.parse(ext_class, ext_payload, role);
+      parsed_extensions.push(ext_parsed);
+    }
     payload_buffer = payload_buffer.slice(5 + ext_len);
   }
   return parsed_extensions;

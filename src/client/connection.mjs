@@ -91,6 +91,12 @@ export class ClientConnection {
     this.connecting = false;
     this.next_stream_id = 1;
 
+    this.server_exts = {};
+    this.client_exts = {};
+    this.info_received = false;
+    this.server_motd = null;
+    this.udp_enabled = true;
+
     this.onopen = () => {};
     this.onclose = () => {};
     this.onerror = () => {};
@@ -132,6 +138,10 @@ export class ClientConnection {
     };
   }
 
+  close() {
+    this.ws.close();
+  }
+
   close_stream(stream, reason) {
     stream.onclose(reason);
     delete this.active_streams[stream.stream_id];
@@ -147,7 +157,13 @@ export class ClientConnection {
 
   create_stream(hostname, port, type=0x01) {
     let stream_type = type;
-    if (typeof stream_type === "string") stream_type = type === "udp" ? 0x02 : 0x01;
+    if (typeof stream_type === "string") 
+      stream_type = type === "udp" ? stream_types.UDP : stream_types.TCP;
+
+    if (stream_type == stream_types.UDP && !this.udp_enabled) {
+      throw new Error("udp is not enabled for this wisp connection");
+    }
+
     let stream_id = this.next_stream_id++;
     let stream = new ClientStream(hostname, port, this.ws, this.max_buffer_size, stream_id, this, stream_type);
     this.active_streams[stream_id] = stream;
@@ -180,8 +196,26 @@ export class ClientConnection {
       if (packet.type === packet_types.CONTINUE) {
         this.max_buffer_size = packet.payload.buffer_remaining;
         this.connected = true;
+        if (!this.info_received) {
+          this.wisp_version = 1;
+        }
       }
+      
       if (packet.type === packet_types.INFO && this.wisp_version === 2) {
+        let server_extensions = parse_extensions(packet.payload.extensions, this.wisp_extensions, "server");
+        for (let server_ext of server_extensions) {
+          for (let client_ext of this.wisp_extensions) {
+            if (server_ext.id === client_ext.id) {
+              this.server_exts[server_ext.id] = server_ext;
+              this.client_exts[client_ext.id] = client_ext;
+            }
+          }
+        }
+
+        this.info_received = true; 
+        this.server_motd = this.server_exts[MOTDExtension.id]?.payload?.message;
+        this.udp_enabled = !!this.server_exts[UDPExtension.id];
+
         let ext_buffer = serialize_extensions(this.wisp_extensions);
         let info_packet = new WispPacket({
           type: InfoPayload.type,
@@ -202,19 +236,15 @@ export class ClientConnection {
       return;
     }
 
-    if (packet.type === packet_types.DATA) { //DATA packets
+    if (packet.type === packet_types.DATA) {
       stream.onmessage(packet.payload_bytes.bytes);
-    }
-
-    else if (packet.type === packet_types.CONTINUE && packet.stream_id == 0) { //initial CONTINUE packet
-      this.max_buffer_size = packet.payload.buffer_remaining;
     }
 
     else if (packet.type === packet_types.CONTINUE) { //other CONTINUE packets
       stream.continue_received(packet.payload.buffer_remaining);
     }
 
-    else if (packet.type === packet_types.CLOSE) { //CLOSE packets
+    else if (packet.type === packet_types.CLOSE) {
       this.close_stream(stream, packet.payload.reason);
     }
 

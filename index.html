@@ -12,7 +12,10 @@
       
       ws.binaryType = "arraybuffer";
       ws.addEventListener("open", () => {
-        let payload = "GET /cdn-cgi/trace HTTP/1.1\r\nHost: cloudflare.com\r\nConnection: keepalive\r\n\r\n";
+        console.log("wisp version:", ws.connection.wisp_version);
+        console.log("udp enabled:", ws.connection.udp_enabled);
+        console.log("motd:", ws.connection.server_motd);
+        let payload = "GET /cdn-cgi/trace HTTP/1.1\r\nHost: cloudflare.com\r\nConnection: close\r\n\r\n";
         ws.send(payload);
       });
       ws.addEventListener("message", (event) => {
