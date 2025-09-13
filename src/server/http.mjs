@@ -57,13 +57,13 @@ async function create_connection(ws, path, request, conn_options) {
     else {
       let wsproxy = new WSProxyConnection(ws, path, conn_options);
       await wsproxy.setup();
-    }  
+    }
   }
 
   catch (error) {
     ws.close();
     if (error instanceof HandshakeError) return;
     if (error instanceof AccessDeniedError) return;
-    logging.error("Uncaught server error:\n" + error.stack);
+    logging.error("Uncaught server error:\n" + (error.stack || error));
   }
 }

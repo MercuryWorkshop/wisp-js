@@ -7,10 +7,11 @@ const RealCloseEvent = (global_this.CloseEvent || Event);
 export const _wisp_connections = {};
 
 export class WispWebSocket extends EventTarget {
-  constructor(url, protocols) {
+  constructor(url, protocols=null, options = {}) {
     super();
     this.url = url;
-    this.protocols = protocols
+    this.protocols = protocols;
+    this.options = options;
     this.binaryType = "blob";
     this.stream = null;
     this.connection = null;
@@ -51,7 +52,7 @@ export class WispWebSocket extends EventTarget {
     this.connection = _wisp_connections[this.real_url];
 
     if (!this.connection) {
-      this.connection = new ClientConnection(this.real_url);
+      this.connection = new ClientConnection(this.real_url, this.options);
       this.connection.onopen = () => {
         this.init_stream();
       };

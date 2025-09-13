@@ -8,8 +8,11 @@ import {
   WispPacket, 
   ConnectPayload, 
   DataPayload, 
-  ClosePayload
+  ClosePayload,
+  InfoPayload
 } from "../packet.mjs";
+
+import { MOTDExtension, UDPExtension, serialize_extensions, parse_extensions } from "../extensions.mjs";
 
 class ClientStream {
   constructor(hostname, port, websocket, buffer_size, stream_id, connection, stream_type) {
@@ -73,12 +76,15 @@ class ClientStream {
 }
 
 export class ClientConnection {
-  constructor(wisp_url) {
+  constructor(wisp_url, {wisp_version, wisp_extensions} = {}) {
     if (!wisp_url.endsWith("/")) {
-      throw "wisp endpoints must end with a trailing forward slash";
+      throw new TypeError("wisp endpoints must end with a trailing forward slash");
     }
 
     this.wisp_url = wisp_url;
+    this.wisp_version = wisp_version || null;
+    this.wisp_extensions = wisp_extensions || null;
+
     this.max_buffer_size = null;
     this.active_streams = {};
     this.connected = false;
@@ -90,11 +96,22 @@ export class ClientConnection {
     this.onerror = () => {};
     this.onmessage = () => {};
 
+    if (this.wisp_version === 2 && this.wisp_extensions === null) {
+      this.add_extensions();
+    }
+
     this.connect_ws();
   }
 
+  add_extensions() {
+    this.wisp_extensions = [];
+    this.wisp_extensions.push(new UDPExtension({client_config: {}}));
+    this.wisp_extensions.push(new MOTDExtension({client_config: {}}));
+  }
+
   connect_ws() {
-    this.ws = new compat.WebSocket(this.wisp_url);
+    let subprotocol = this.wisp_version === 2 ? "wisp-v2" : undefined;
+    this.ws = new compat.WebSocket(this.wisp_url, subprotocol);
     this.ws.binaryType = "arraybuffer";
     this.connecting = true;
 
@@ -108,8 +125,7 @@ export class ClientConnection {
     };
     this.ws.onmessage = (event) => {
       this.on_ws_msg(event);
-      if (this.connecting) {
-        this.connected = true;
+      if (this.connected && this.connecting) {
         this.connecting = false;
         this.onopen();
       }
@@ -160,7 +176,28 @@ export class ClientConnection {
     let packet = WispPacket.parse_all(buffer);
     let stream = this.active_streams[packet.stream_id];
 
-    if (typeof stream === "undefined" && (packet.stream_id !== 0 || packet.type !== packet_types.CONTINUE)) {
+    if (packet.stream_id === 0 && this.connecting) {
+      if (packet.type === packet_types.CONTINUE) {
+        this.max_buffer_size = packet.payload.buffer_remaining;
+        this.connected = true;
+      }
+      if (packet.type === packet_types.INFO && this.wisp_version === 2) {
+        let ext_buffer = serialize_extensions(this.wisp_extensions);
+        let info_packet = new WispPacket({
+          type: InfoPayload.type,
+          stream_id: 0,
+          payload: new InfoPayload({
+            major_ver: this.wisp_version,
+            minor_ver: 0,
+            extensions: ext_buffer
+          })
+        });
+        this.ws.send(info_packet.serialize().bytes);
+      }
+      return;
+    }
+
+    if (typeof stream === "undefined") {
       console.warn(`wisp client warning: received a ${packet_classes[packet.type].name} packet for a stream which doesn't exist`);
       return;
     }
@@ -182,7 +219,7 @@ export class ClientConnection {
     }
 
     else {
-      console.warn(`wisp client warning: receive an invalid packet of type ${packet.type}`);
+      console.warn(`wisp client warning: received an invalid packet of type ${packet.type}`);
     }
   }
 }

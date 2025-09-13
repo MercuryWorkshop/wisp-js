@@ -27,7 +27,7 @@ export const options = {
   parse_real_ip_from: ["127.0.0.1"],
 
   //wisp v2 options
-  wisp_version: 1,
+  wisp_version: 2,
   wisp_motd: null
 }
 

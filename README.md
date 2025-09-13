@@ -30,7 +30,7 @@ Options:
                                 (optional)
   -h, --help                    display help for command
 ```
-You may also clone this repository and run `npn run server_cli -- --help`.
+You may also clone this repository and run `npm run server_cli -- --help`.
 
 The config file is a JSON file with the same entries as the [global server config](https://github.com/MercuryWorkshop/wisp-client-js/?tab=readme-ov-file#changing-server-settings) in the API.
 

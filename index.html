@@ -8,7 +8,7 @@
 
       let start = performance.now();
       let ws_url = location.href.replace("http", "ws");
-      let ws = new wisp.WispWebSocket(ws_url + "cloudflare.com:80");
+      let ws = new wisp.WispWebSocket(ws_url + "cloudflare.com:80", null, {wisp_version: 2});
       
       ws.binaryType = "arraybuffer";
       ws.addEventListener("open", () => {

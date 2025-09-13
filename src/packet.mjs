@@ -62,15 +62,15 @@ export class WispPacket {
   }
   static parse_all(buffer) {
     if (buffer.size < WispPacket.min_size) {
-      throw "packet too small";
+      throw TypeError("packet too small");
     }
     let packet = WispPacket.parse(buffer);
     let payload_class = packet_classes[packet.type];
     if (typeof payload_class === "undefined") {
-      throw "invalid packet type";
+      throw TypeError("invalid packet type");
     }
     if (packet.payload_bytes.size < payload_class.size) {
-      throw "payload too small";
+      throw TypeError("payload too small");
     }
     packet.payload = payload_class.parse(packet.payload_bytes);
     return packet;

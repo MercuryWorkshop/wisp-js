@@ -125,7 +125,7 @@ export class ServerConnection {
     this.server_exts = {};
     this.client_exts = {};
 
-    if (this.wisp_version == 2 && this.wisp_extensions === null) {
+    if (this.wisp_version === 2 && this.wisp_extensions === null) {
       this.add_extensions();
     }
   }
@@ -141,11 +141,9 @@ export class ServerConnection {
   }
 
   async setup() {
-    logging.info(`setting up new wisp connection with id ${this.conn_id}`);
+    logging.info(`setting up new wisp v${this.wisp_version} connection with id ${this.conn_id}`);
 
     await this.ws.connect();
-
-    //send initial info packet for wisp v2
     if (this.wisp_version == 2) {
       await this.setup_wisp_v2()
     }
@@ -169,6 +167,7 @@ export class ServerConnection {
   }
 
   async setup_wisp_v2() {
+    //send initial info packet for wisp v2
     let ext_buffer = serialize_extensions(this.wisp_extensions);
     let info_packet = new WispPacket({
       type: InfoPayload.type,
@@ -183,6 +182,11 @@ export class ServerConnection {
 
     //wait for the client's info packet
     let data = await this.ws.recv();
+    if (data == null) {
+      logging.warn(`(${this.conn_id}) handshake error: ws closed before handshake complete`);
+      await this.cleanup();
+      throw new HandshakeError();
+    }
     let buffer = new WispBuffer(new Uint8Array(data));
     let packet = WispPacket.parse_all(buffer);
 
