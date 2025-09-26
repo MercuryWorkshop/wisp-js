@@ -82,7 +82,7 @@ export class ClientConnection {
     }
 
     this.wisp_url = wisp_url;
-    this.wisp_version = wisp_version || null;
+    this.wisp_version = wisp_version || 2;
     this.wisp_extensions = wisp_extensions || null;
 
     this.max_buffer_size = null;

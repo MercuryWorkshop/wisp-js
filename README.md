@@ -2,6 +2,13 @@
 
 This is an implementation of a [Wisp](https://github.com/mercuryWorkshop/wisp-protocol) client and server, written in Javascript for use in NodeJS and in the browser.
 
+## Features:
+- Complete Wisp client and server implementations
+- Supports Wisp v2 and v1
+- APIs available for client and server
+- Highly configurable 
+- Supports NodeJS and the browser
+
 ### Library Entrypoints:
 - `@mercuryworkshop/wisp-js/client` - Only contains the client code.
 - `@mercuryworkshop/wisp-js/server` - Contains the server code, and the logging module.
@@ -10,24 +17,25 @@ This is an implementation of a [Wisp](https://github.com/mercuryWorkshop/wisp-pr
 All of these entrypoints support being imported as either a CommonJS or ES6 module.
 
 ## Server CLI:
-THere is a CLI interface available for the Wisp server, and it can be used by installing the package with npm, then running:
+THere is a CLI interface available for the Wisp server, and it can be used by running:
 ```
+$ npm i @mercuryworkshop/wisp-js
+added 6 packages in 2s
 $ npx wisp-js-server --help
 Usage: wisp-js-server [options]
 
-A Wisp server implementation written in Javascript. (v0.3.1)
+A Wisp server implementation written in Javascript. (v0.4.0)
 
 Options:
   -V, --version                 output the version number
   -H, --host <host>             The hostname the server will listen on. (default: "127.0.0.1")
   -P, --port <port>             The port number to run the server on. (default: 5001)
-  -L, --logging <log_level>     The log level to use. This is either DEBUG, INFO, WARN, ERROR, or
-                                NONE. (default: "INFO")
+  -L, --logging <log_level>     The log level to use. This is either DEBUG, INFO, WARN, ERROR, or NONE.
+                                (default: "INFO")
   -S, --static <static_dir>     The directory to serve static files from. (optional)
   -C, --config <config_path>    The path to your Wisp server config file. This is the same format as
                                 `wisp.options` in the API. (optional)
-  -O, --options <options_json>  A JSON string to set the Wisp config without using a file.
-                                (optional)
+  -O, --options <options_json>  A JSON string to set the Wisp config without using a file. (optional)
   -h, --help                    display help for command
 ```
 You may also clone this repository and run `npm run server_cli -- --help`.
@@ -65,6 +73,8 @@ conn.onerror = () => {
   console.log("wisp connection error");
 };
 ```
+
+You can close the Wisp connection with `conn.close()`.
 
 ### Creating New Streams:
 Once you have your `WispConnection` object, and you have waited for the connection to be established, you can use the `WispConnection.create_stream` method to create new streams. The two arguments to this function are the hostname and port of the new stream, and a `WispStream` object will be returned. You can also pass a third argument to `create_stream`, which is the type of the stream, and it can be either `"tcp"` (the default) or `"udp"`.
@@ -104,6 +114,21 @@ ws.addEventListener("message", (event) => {
 ```
 
 The `wisp_client._wisp_connections` object will be used to manage the active Wisp connections. This object is able to store multiple active Wisp connections, identified by the websocket URL.
+
+### Client Options:
+
+`ClientConnection` and `WispWebSocket` both accept an additional argument which specifies additional options for the Wisp connection.
+
+The following options are accepted:
+- `wisp_version` - Sets the Wisp version to use for the client (either `1` or `2`). If Wisp v2 is used, Wisp v1 connections will still be accepted. Defaults to `2`. 
+- `wisp_extensions` - Specifies custom Wisp v2 extensions to be used on the client. 
+
+For example:
+```js
+let conn = new wisp.ClientConnection(ws_url, {wisp_version: 1});
+
+let ws = new wisp.WispWebSocket(ws_url + "cloudflare.com:80", null, {wisp_version: 1});
+```
 
 ## Server API:
 ### Importing the Server Library:
@@ -203,6 +228,10 @@ To change settings globally for the Wisp server, you can use the `wisp.options` 
 - `options.dns_method` - The method to use for DNS resolution. This is either `"lookup"`, which uses the system DNS, or `"resolve"`, which uses the Node `dns.resolve` functions. This may also be a custom async function, which takes the hostname as its only argument and returns the resolved IP address. Defaults to `"lookup"`.
 - `options.dns_servers` - A [list of strings containing IP addresses](https://nodejs.org/api/dns.html#dnspromisessetserversservers) for custom DNS servers. This is only used if `dns_method` is set to `"resolve"`. By default, this is unset, and DNS queries will use the system DNS servers.
 - `options.dns_result_order` - Controls whether or not IPv4 or IPv6 addresses are prioritized. This can be either `"ipv4first"`, `"ipv6first"`, or `"verbatim"`. `"verbatim"` uses the original order that the system DNS returns the results in, and only has special meaning if the DNS method is `"lookup"`. If the DNS method is `"resolve"`, `"verbatim"` is treated the same as `"ipv6first"`. Defaults to `"verbatim"`.
+
+**Wisp V2 Options:**
+- `options.wisp_version` - Sets the Wisp version to use for the server (either `1` or `2`). If Wisp v2 is used, Wisp v1 connections will still be accepted. Defaults to `2`. 
+- `options.wisp_motd` - Sets the MOTD for the server if Wisp v2 is used. Defaults to `null`. 
 
 For example:
 ```js

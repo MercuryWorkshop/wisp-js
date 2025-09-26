@@ -3,6 +3,7 @@ const common_options = {
   stats: {
     orphanModules: true,
   },
+  devtool: "source-map",
   optimization: {mangleExports: false}
 }
 

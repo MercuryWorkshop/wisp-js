@@ -1,3 +1,10 @@
+## v0.4.0 (9/26/25):
+- Add support for Wisp v2 on the client and server
+- Allow configuring the server MOTD
+- Fix several bugs
+- Improve compatibility for older browsers
+- Add source maps in the NPM package
+
 ## v0.3.3 (10/27/24):
 - Fix improper serialization of CLOSE packets
 
