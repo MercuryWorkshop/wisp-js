@@ -25,7 +25,7 @@ export class WispBuffer {
   from_array(bytes) {
     this.size = bytes.length;
     this.bytes = bytes;
-    this.view = new DataView(bytes.buffer); 
+    this.view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength); 
   }
 
   concat(buffer) {
