@@ -38,7 +38,7 @@ export class WispWebSocket extends EventTarget {
     this.init_connection();
   }
 
-  fakeEventSend(event) {
+  fake_event_send(event) {
     this["on" + event.type]?.(event);
     this.dispatchEvent(event);
 	};
@@ -88,21 +88,21 @@ export class WispWebSocket extends EventTarget {
       else {
         throw "invalid binaryType string";
       }
-      this.fakeEventSend(new MessageEvent("message", {data: data}));
+      this.fake_event_send(new MessageEvent("message", {data: data}));
     };
 
     this.stream.onclose = (reason) => {
       this._ready_state = this.CLOSED;
-      this.fakeEventSend(new RealCloseEvent("close", {code: reason}));
+      this.fake_event_send(new RealCloseEvent("close", {code: reason}));
     };
 
-    this.fakeEventSend(new Event("open"));
+    this.fake_event_send(new Event("open"));
   }
 
   on_conn_close() {
     this._ready_state = this.CLOSED;
     if (_wisp_connections[this.real_url]) {
-      this.fakeEventSend(new Event("error"));
+      this.fake_event_send(new Event("error"));
     }
     delete _wisp_connections[this.real_url];
   }
