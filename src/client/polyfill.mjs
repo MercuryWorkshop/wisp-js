@@ -17,10 +17,10 @@ export class WispWebSocket extends EventTarget {
     this.connection = null;
 
     //legacy event handlers
-    this.onopen = () => {};
-    this.onerror = () => {};
-    this.onmessage = () => {};
-    this.onclose = () => {};
+    this.onopen = null;
+    this.onerror = null;
+    this.onmessage = null;
+    this.onclose = null;
 
     this.CONNECTING = 0;
     this.OPEN = 1;
@@ -38,14 +38,10 @@ export class WispWebSocket extends EventTarget {
     this.init_connection();
   }
 
-  on_conn_close() {
-    this._ready_state = this.CLOSED;
-    if (_wisp_connections[this.real_url]) {
-      this.onerror(new Event("error"));
-      this.dispatchEvent(new Event("error"));
-    }
-    delete _wisp_connections[this.real_url];
-  }
+  fakeEventSend(event) {
+    this["on" + event.type]?.(event);
+    this.dispatchEvent(event);
+	};
 
   init_connection() {
     //create the stream
@@ -92,21 +88,23 @@ export class WispWebSocket extends EventTarget {
       else {
         throw "invalid binaryType string";
       }
-      let msg_event = new MessageEvent("message", {data: data});
-      this.onmessage(msg_event);
-      this.dispatchEvent(msg_event);
+      this.fakeEventSend(new MessageEvent("message", {data: data}));
     };
 
     this.stream.onclose = (reason) => {
       this._ready_state = this.CLOSED;
-      let close_event = new RealCloseEvent("close", {code: reason}); 
-      this.onclose(close_event);
-      this.dispatchEvent(close_event);
+      this.fakeEventSend(new RealCloseEvent("close", {code: reason}));
     };
 
-    let open_event = new Event("open");
-    this.onopen(open_event);
-    this.dispatchEvent(open_event);
+    this.fakeEventSend(new Event("open"));
+  }
+
+  on_conn_close() {
+    this._ready_state = this.CLOSED;
+    if (_wisp_connections[this.real_url]) {
+      this.fakeEventSend(new Event("error"));
+    }
+    delete _wisp_connections[this.real_url];
   }
 
   send(data) {
@@ -165,3 +163,7 @@ export class WispWebSocket extends EventTarget {
     return this._ready_state;
   }
 }
+WispWebSocket.prototype.CONNECTING = 0;
+WispWebSocket.prototype.OPEN = 1;
+WispWebSocket.prototype.CLOSING = 2;
+WispWebSocket.prototype.CLOSED = 3;
