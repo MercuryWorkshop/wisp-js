@@ -7,6 +7,10 @@ const RealCloseEvent = (global_this.CloseEvent || Event);
 export const _wisp_connections = {};
 
 export class WispWebSocket extends EventTarget {
+  static CONNECTING = 0;
+  static OPEN = 1
+  static CLOSING = 2;
+  static CLOSED = 3;
   constructor(url, protocols=null, options = {}) {
     super();
     this.url = url;
@@ -22,10 +26,6 @@ export class WispWebSocket extends EventTarget {
     this.onmessage = null;
     this.onclose = null;
 
-    this.CONNECTING = 0;
-    this.OPEN = 1;
-    this.CLOSING = 2;
-    this.CLOSED = 3;
     this._ready_state = this.CONNECTING;
 
     //parse the wsproxy url
@@ -163,7 +163,3 @@ export class WispWebSocket extends EventTarget {
     return this._ready_state;
   }
 }
-WispWebSocket.prototype.CONNECTING = 0;
-WispWebSocket.prototype.OPEN = 1;
-WispWebSocket.prototype.CLOSING = 2;
-WispWebSocket.prototype.CLOSED = 3;
