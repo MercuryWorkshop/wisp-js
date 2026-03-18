@@ -15,14 +15,14 @@ import {
 import { MOTDExtension, UDPExtension, serialize_extensions, parse_extensions } from "../extensions.mjs";
 
 class ClientStream {
-  constructor(hostname, port, websocket, buffer_size, stream_id, connection, stream_type) {
+  constructor(hostname, port, websocket, connection, stream_id, stream_type, buffer_size) {
     this.hostname = hostname;
     this.port = port;
     this.ws = websocket;
-    this.buffer_size = buffer_size;
-    this.stream_id = stream_id;
     this.connection = connection;
+    this.stream_id = stream_id;
     this.stream_type = stream_type;
+    this.buffer_size = buffer_size;
     this.send_buffer = [];
     this.open = true;
 
@@ -121,8 +121,20 @@ export class ClientConnection {
     this.ws.binaryType = "arraybuffer";
     this.connecting = true;
 
+    this.ws.onmessage = (event) => {
+      this.on_ws_msg(event);
+      if (this.connected && this.connecting) {
+        this.connecting = false;
+        this.onopen();
+      }
+    };
+    this.ws.onclose = () => {
+      this.cleanup();
+      this.onclose();
+    };
     this.ws.onerror = () => {
       if (this.wisp_version === 2) {
+        // try falling back to wisp v1 if the server doesn't support v2
         this.ws.onclose = null;
         this.cleanup();
         this.wisp_version = 1;
@@ -132,54 +144,6 @@ export class ClientConnection {
       this.cleanup();
       this.onerror();
     };
-    this.ws.onclose = () => {
-      this.cleanup();
-      this.onclose();
-    };
-    this.ws.onmessage = (event) => {
-      this.on_ws_msg(event);
-      if (this.connected && this.connecting) {
-        this.connecting = false;
-        this.onopen();
-      }
-    };
-  }
-
-  close() {
-    this.ws.close();
-  }
-
-  create_stream(hostname, port, type=0x01) {
-    let stream_type = type;
-    if (typeof stream_type === "string") 
-      stream_type = type === "udp" ? stream_types.UDP : stream_types.TCP;
-
-    if (stream_type == stream_types.UDP && !this.udp_enabled) {
-      throw new Error("udp is not enabled for this wisp connection");
-    }
-
-    let stream_id = this.next_stream_id++;
-    let stream = new ClientStream(hostname, port, this.ws, this.max_buffer_size, stream_id, this, stream_type);
-    this.active_streams[stream_id] = stream;
-    stream.open = this.connected;
-
-    //construct CONNECT packet
-    let packet = new WispPacket({
-      type: packet_types.CONNECT,
-      stream_id: stream_id,
-      payload: new ConnectPayload({
-        stream_type: stream_type,
-        port: port,
-        hostname: hostname
-      })
-    });
-    this.ws.send(packet.serialize().bytes);
-    return stream;
-  }
-
-  close_stream(stream, reason) {
-    stream.onclose(reason);
-    delete this.active_streams[stream.stream_id];
   }
 
   on_ws_msg(event) {
@@ -251,12 +215,49 @@ export class ClientConnection {
     }
   }
 
+  close() {
+    this.ws.close();
+  }
+
   cleanup() {
     this.connected = false;
     this.connecting = false;
     for (let stream_id of Object.keys(this.active_streams)) {
       this.close_stream(this.active_streams[stream_id], 0x03);
     }
+  }
+
+  create_stream(hostname, port, type=0x01) {
+    let stream_type = type;
+    if (typeof stream_type === "string") 
+      stream_type = type === "udp" ? stream_types.UDP : stream_types.TCP;
+
+    if (stream_type == stream_types.UDP && !this.udp_enabled) {
+      throw new Error("udp is not enabled for this wisp connection");
+    }
+
+    const stream_id = this.next_stream_id++;
+    const stream = new ClientStream(hostname, port, this.ws, this, stream_id, stream_type, this.max_buffer_size);
+    this.active_streams[stream_id] = stream;
+    stream.open = this.connected;
+
+    //construct CONNECT packet
+    const packet = new WispPacket({
+      type: packet_types.CONNECT,
+      stream_id: stream_id,
+      payload: new ConnectPayload({
+        stream_type: stream_type,
+        port: port,
+        hostname: hostname
+      })
+    });
+    this.ws.send(packet.serialize().bytes);
+    return stream;
+  }
+
+  close_stream(stream, reason) {
+    stream.onclose(reason);
+    delete this.active_streams[stream.stream_id];
   }
 }
 

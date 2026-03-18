@@ -22,9 +22,9 @@ export class WispWebSocket extends EventTarget {
 
     //legacy event handlers
     this.onopen = null;
-    this.onerror = null;
     this.onmessage = null;
     this.onclose = null;
+    this.onerror = null;
 
     this._ready_state = this.CONNECTING;
 
@@ -73,6 +73,14 @@ export class WispWebSocket extends EventTarget {
     }
   }
 
+  on_conn_close() {
+    this._ready_state = this.CLOSED;
+    if (_wisp_connections[this.real_url]) {
+      this.fake_event_send(new Event("error"));
+    }
+    delete _wisp_connections[this.real_url];
+  }
+
   init_stream() {
     this._ready_state = this.OPEN;
     this.stream = this.connection.create_stream(this.host, this.port);
@@ -97,14 +105,6 @@ export class WispWebSocket extends EventTarget {
     };
 
     this.fake_event_send(new Event("open"));
-  }
-
-  on_conn_close() {
-    this._ready_state = this.CLOSED;
-    if (_wisp_connections[this.real_url]) {
-      this.fake_event_send(new Event("error"));
-    }
-    delete _wisp_connections[this.real_url];
   }
 
   send(data) {
@@ -145,7 +145,7 @@ export class WispWebSocket extends EventTarget {
 
   get bufferedAmount() {
     let total = 0;
-    for (let msg of this.stream.send_buffer) {
+    for (const msg of this.stream.send_buffer) {
       total += msg.length;
     }
     return total;
