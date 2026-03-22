@@ -27,8 +27,11 @@ export class AsyncWebSocket {
         this.data_queue.put(event.data);
       }
       this.ws.onclose = () => {
-        if (!this.connected) reject();
+        if (!this.connected) reject(new Error("WebSocket closed before connection established"));
         else this.data_queue.close();
+      }
+      this.ws.onerror = (error) => {
+        if (!this.connected) reject(error);
       }
       if (this.ws.readyState === this.ws.OPEN) {
         this.connected = true;

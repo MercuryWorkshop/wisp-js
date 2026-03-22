@@ -147,6 +147,7 @@ export class NodeTCPSocket {
       });
       this.socket.on("error", (error) => {
         logging.warn(`tcp stream to ${this.hostname} ended with error - ${error}`);
+        if (!this.connected) reject(error);
       });
       this.socket.on("end", () => {
         if (!this.socket) return;
@@ -172,7 +173,7 @@ export class NodeTCPSocket {
 
   async close() {
     if (!this.socket) return;
-    this.socket.end();
+    this.socket.destroy();
     this.socket = null;
   }
 
@@ -213,10 +214,13 @@ export class NodeUDPSocket {
       this.socket.on("message", (data) => {
         this.data_queue.put(data);
       });
-      this.socket.on("error", () => {
-        if (!this.connected) reject();
+      this.socket.on("error", (error) => {
+        if (!this.connected) reject(error);
         this.data_queue.close();
-        this.socket = null;
+        if (this.socket) {
+          this.socket.close();
+          this.socket = null;
+        }
       });
       this.socket.connect(this.port, ip);
     });

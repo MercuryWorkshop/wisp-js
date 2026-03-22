@@ -48,13 +48,14 @@ async function create_connection(ws, path, request, conn_options) {
   let origin = request.headers["origin"];
   logging.info(`new connection on ${path} from ${real_ip} (origin: ${origin})`);
   
+  let conn = null;
   try {
     if (path.endsWith("/")) {
-      let wisp_conn = new ServerConnection(ws, path, conn_options);
-      await wisp_conn.setup();
-      await wisp_conn.run();
+      conn = new ServerConnection(ws, path, conn_options);
+      await conn.setup();
+      await conn.run();
     }
-  
+
     else {
       let wsproxy = new WSProxyConnection(ws, path, conn_options);
       await wsproxy.setup();
@@ -62,6 +63,7 @@ async function create_connection(ws, path, request, conn_options) {
   }
 
   catch (error) {
+    if (conn) await conn.cleanup();
     ws.close();
     if (error instanceof HandshakeError) return;
     if (error instanceof AccessDeniedError) return;

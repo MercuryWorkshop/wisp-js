@@ -10,6 +10,14 @@ export class WSProxyConnection {
     this.hostname = hostname.trim();
     this.port = parseInt(port);
     this.ws = new AsyncWebSocket(ws);
+    this.closed = false;
+  }
+
+  async cleanup() {
+    if (this.closed) return;
+    this.closed = true;
+    if (this.socket) await this.socket.close();
+    this.ws.close();
   }
 
   async setup() {
@@ -30,9 +38,11 @@ export class WSProxyConnection {
     //start the proxy tasks in the background
     this.tcp_to_ws().catch((error) => {
       logging.error(`a tcp to ws task (wsproxy) encountered an error - ${error}`);
+      this.cleanup();
     });
     this.ws_to_tcp().catch((error) => {
       logging.error(`a ws to tcp task (wsproxy) encountered an error - ${error}`);
+      this.cleanup();
     });
   }
 
@@ -46,7 +56,7 @@ export class WSProxyConnection {
       await this.ws.send(data);
       this.socket.resume();
     }
-    await this.ws.close();
+    await this.cleanup();
   }
 
   async ws_to_tcp() {
@@ -58,6 +68,6 @@ export class WSProxyConnection {
       }
       await this.socket.send(data);
     }
-    await this.socket.close();
+    await this.cleanup();
   }
 }
