@@ -1,3 +1,6 @@
+## v0.4.1 (12/4/25):
+- Fixed downgrading from Wisp v2 to v1 on the client
+
 ## v0.4.0 (9/26/25):
 - Add support for Wisp v2 on the client and server
 - Allow configuring the server MOTD

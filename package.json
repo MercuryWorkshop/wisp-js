@@ -49,15 +49,15 @@
   },
   "dependencies": {
     "bufferutil": "^4.1.0",
-    "commander": "^14.0.3",
-    "ipaddr.js": "^2.3.0",
-    "ws": "^8.19.0"
+    "commander": "^15.0.0",
+    "ipaddr.js": "^2.4.0",
+    "ws": "^8.21.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.29.0",
-    "@babel/preset-env": "^7.29.0",
-    "babel-loader": "^10.0.0",
-    "webpack": "^5.105.4",
-    "webpack-cli": "^6.0.1"
+    "@babel/core": "^8.0.1",
+    "@babel/preset-env": "^8.0.2",
+    "babel-loader": "^10.1.1",
+    "webpack": "^5.108.3",
+    "webpack-cli": "^7.1.0"
   }
 }
