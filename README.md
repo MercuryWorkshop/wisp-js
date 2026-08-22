@@ -17,7 +17,7 @@ This is an implementation of a [Wisp](https://github.com/mercuryWorkshop/wisp-pr
 All of these entrypoints support being imported as either a CommonJS or ES6 module.
 
 ## Server CLI:
-THere is a CLI interface available for the Wisp server, and it can be used by running:
+There is a CLI interface available for the Wisp server, and it can be used by running:
 ```
 $ npm i @mercuryworkshop/wisp-js
 added 6 packages in 2s
