@@ -26,14 +26,20 @@ function resolve4(hostname) {
 function resolve6(hostname) {
   return resolver.resolve6(hostname);
 }
+//an empty answer is not an address: c-ares returns [] (not ENODATA) for a
+//cname'd host with no records in that family, and connecting to `undefined`
+//dials localhost. try the other family, and fail if neither has an address.
 async function resolve_with_fallback(resolve_first, resolve_after, hostname) {
   try {
-    return (await resolve_first(hostname))[0];
+    let addresses = await resolve_first(hostname);
+    if (addresses.length) return addresses[0];
   }
-  catch {
-    return (await resolve_after(hostname))[0];
-  }
-}  
+  catch {}
+  let addresses = await resolve_after(hostname);
+  if (!addresses.length) 
+    throw new Error(`no address found for ${hostname}`);
+  return addresses[0];
+}
 
 //a wrapper for the actual dns lookup
 async function perform_lookup(hostname) {
