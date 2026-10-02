@@ -100,7 +100,7 @@ export async function is_stream_allowed(connection, type, hostname, port) {
     return close_reasons.ConnThrottled;
   if (options.stream_limit_per_host !== -1) {
     let streams_per_host = 0;
-    for (let stream of connection.streams) {
+    for (let stream of Object.values(connection.streams)) {
       if (stream.socket.hostname === hostname) {
         streams_per_host++;
       }
