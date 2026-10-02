@@ -204,6 +204,13 @@ logging.set_level(logging.DEBUG);
 ### Changing Server Settings:
 To change settings globally for the Wisp server, you can use the `wisp.options` object. Here is a list of all of the available settings:
 
+The blacklist/whitelist, stream limit, and IP options below can also be set for a single connection, which lets one server apply different policies on different paths. Pass them as `filter_options` in the fourth argument of `routeRequest`, and they take precedence over `wisp.options` for that connection:
+```js
+wisp.routeRequest(req, socket, head, {
+  filter_options: { hostname_blacklist: [/(^|\.)ads\.example\.com$/] }
+});
+```
+
 **Blacklist / Whitelist Options:**
 - `options.hostname_blacklist` - An array of regex objects to match against the destination server. Any matches will be blocked.
 - `options.hostname_whitelist` - Same as `hostname_blacklist`, but only matches will be allowed through, and setting this will supersede `hostname_blacklist`.
