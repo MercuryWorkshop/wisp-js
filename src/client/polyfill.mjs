@@ -1,9 +1,10 @@
-import { global_this } from "../compat.mjs";
+import { global_this } from "../compat";
 import { ClientConnection } from "./connection.mjs";
 
 //polyfill the DOM Websocket API so that applications using wsproxy can easily use wisp with minimal changes
 
 const RealCloseEvent = (global_this.CloseEvent || Event);
+/** @type {Record<string, ClientConnection>} */
 export const _wisp_connections = {};
 
 export class WispWebSocket extends EventTarget {

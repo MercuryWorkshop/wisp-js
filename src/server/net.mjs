@@ -1,7 +1,7 @@
-import * as logging from "../logging.mjs";
-import { AsyncQueue } from "../websocket.mjs";
+import * as logging from "../logging";
+import { AsyncQueue } from "../websocket";
 import { options } from "./options.mjs";
-import { net, dgram, dns } from "../compat.mjs";
+import { net, dgram, dns } from "../compat";
 
 //wrappers for node networking apis
 //in the browser these can be redefined to allow for custom transports
