@@ -1,7 +1,7 @@
-import * as logging from "../logging.mjs";
+import * as logging from "../logging";
 import * as filter from "./filter.mjs";
-import { stream_types } from "../packet.mjs";
-import { AsyncWebSocket } from "../websocket.mjs";
+import { stream_types } from "../packet";
+import { AsyncWebSocket } from "../websocket";
 import { NodeTCPSocket } from "./net.mjs";
 
 export class WSProxyConnection {

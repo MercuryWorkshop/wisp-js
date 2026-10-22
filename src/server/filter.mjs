@@ -1,4 +1,4 @@
-import { close_reasons, stream_types } from "../packet.mjs";
+import { close_reasons, stream_types } from "../packet";
 import { options } from "./options.mjs";
 import * as net from "./net.mjs";
 

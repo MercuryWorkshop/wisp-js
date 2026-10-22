@@ -12,26 +12,26 @@
     "url": "https://github.com/MercuryWorkshop/wisp-js/issues"
   },
   "homepage": "https://github.com/MercuryWorkshop/wisp-js#readme",
-  "main": "./src/index.mjs",
+  "main": "./dist/wisp-full.mjs",
   "exports": {
     ".": {
-      "import": "./src/index.mjs",
+      "import": "./dist/wisp-full.mjs",
       "require": "./dist/wisp-full.cjs"
     },
     "./client": {
-      "import": "./src/entrypoints/client.mjs",
+      "import": "./dist/wisp-client.mjs",
       "require": "./dist/wisp-client.cjs"
     },
     "./server": {
-      "import": "./src/entrypoints/server.mjs",
+      "import": "./dist/wisp-client.mjs",
       "require": "./dist/wisp-server.cjs"
     }
   },
   "browser": {
-    ".": "./src/index.mjs",
-    "./client": "./src/entrypoints/client.mjs",
-    "./server": "./src/entrypoints/server.mjs",
-    "./src/compat.mjs": "./src/compat_browser.mjs"
+    ".": "./dist/wisp-full.mjs",
+    "./client": "./dist/wisp-client.mjs",
+    "./server": "./dist/wisp-server.mjs",
+    "./src/compat.ts": "./src/compat_browser.ts"
   },
   "files": [
     "dist",
@@ -55,7 +55,11 @@
   "devDependencies": {
     "@babel/core": "^8.0.1",
     "@babel/preset-env": "^8.0.2",
+    "@types/node": "^26.6.5",
+    "@types/ws": "^8.18.2",
     "babel-loader": "^10.1.1",
+    "ts-loader": "^9.6.2",
+    "typescript": "^6.0.3",
     "webpack": "^5.110.3",
     "webpack-cli": "^7.2.3"
   }

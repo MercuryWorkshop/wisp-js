@@ -1,4 +1,4 @@
-import * as compat from "../compat.mjs";
+import * as compat from "../compat";
 
 import {
   packet_classes,
@@ -10,9 +10,9 @@ import {
   DataPayload, 
   ClosePayload,
   InfoPayload
-} from "../packet.mjs";
+} from "../packet";
 
-import { MOTDExtension, UDPExtension, serialize_extensions, parse_extensions } from "../extensions.mjs";
+import { MOTDExtension, UDPExtension, serialize_extensions, parse_extensions } from "../extensions";
 
 class ClientStream {
   constructor(hostname, port, websocket, connection, stream_id, stream_type, buffer_size) {

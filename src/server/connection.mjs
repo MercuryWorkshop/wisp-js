@@ -1,6 +1,6 @@
-import * as logging from "../logging.mjs";
+import * as logging from "../logging";
 import * as filter from "./filter.mjs";
-import { AsyncQueue, AsyncWebSocket, get_conn_id } from "../websocket.mjs";
+import { AsyncQueue, AsyncWebSocket, get_conn_id } from "../websocket";
 import { NodeTCPSocket, NodeUDPSocket } from "./net.mjs";
 import { 
   WispBuffer,
@@ -12,9 +12,9 @@ import {
   InfoPayload,
   stream_types,
   close_reasons
-} from "../packet.mjs";
+} from "../packet";
 import { options } from "./options.mjs";
-import { MOTDExtension, UDPExtension, serialize_extensions, parse_extensions } from "../extensions.mjs";
+import { MOTDExtension, UDPExtension, serialize_extensions, parse_extensions } from "../extensions";
 
 export class HandshakeError extends Error {}
 

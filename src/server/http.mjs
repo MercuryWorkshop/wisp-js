@@ -1,5 +1,5 @@
-import * as logging from "../logging.mjs";
-import * as compat from "../compat.mjs";
+import * as logging from "../logging";
+import * as compat from "../compat";
 
 import { options } from "./options.mjs";
 import { AccessDeniedError } from "./filter.mjs";
