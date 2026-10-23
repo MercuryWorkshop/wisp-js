@@ -36,7 +36,10 @@ function check_ip_range(ip, range) {
 export function is_ip_blocked(ip_str) {
   if (!ipaddr.isValid(ip_str)) 
     return false;
+  
   let ip = ipaddr.parse(ip_str);
+  if (ip.range() === "ipv4Mapped") 
+    ip = ip.toIPv4Address();
 
   let loopback_ranges = ["loopback", "unspecified"];
   let private_ranges = ["broadcast", "linkLocal", "carrierGradeNat", "private", "reserved"];
