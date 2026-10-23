@@ -1,3 +1,6 @@
+## v0.5.1 (10/23/26):
+- Fix several bugs relating to DNS and IP address handling
+
 ## v0.5.0 (9/9/26):
 - Relicense entire project to the GNU LGPL v3
 - Some internal cleanup
