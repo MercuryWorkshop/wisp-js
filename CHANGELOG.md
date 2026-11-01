@@ -1,3 +1,6 @@
+## v0.5.2 (11/1/26):
+- Fix bugs relating to continue packet handling
+
 ## v0.5.1 (10/23/26):
 - Fix several bugs relating to DNS and IP address handling
 

@@ -233,6 +233,9 @@ To change settings globally for the Wisp server, you can use the `wisp.options` 
 - `options.wisp_version` - Sets the Wisp version to use for the server (either `1` or `2`). If Wisp v2 is used, Wisp v1 connections will still be accepted. Defaults to `2`. 
 - `options.wisp_motd` - Sets the MOTD for the server if Wisp v2 is used. Defaults to `null`. 
 
+**Misc Options**:
+- `options.send_buffer_size` - The maximum size of the send buffer for TCP streams on the server. This is an integer representing the number of packets to buffer. 
+
 For example:
 ```js
 wisp.options.port_whitelist = [
