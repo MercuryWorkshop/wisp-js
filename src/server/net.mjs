@@ -29,12 +29,12 @@ function resolve6(hostname) {
 async function resolve_with_fallback(resolve_first, resolve_after, hostname) {
   let result; 
   try {
-    result = await resolve_first(hostname)[0];
+    result = (await resolve_first(hostname))[0];
     if (result == null)
       throw Error("address not resolved");
   }
   catch {
-    result = await resolve_after(hostname)[0];
+    result = (await resolve_after(hostname))[0];
     if (result == null)
       throw Error("address not resolved");
   }

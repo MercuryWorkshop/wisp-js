@@ -19,14 +19,12 @@ import { MOTDExtension, UDPExtension, serialize_extensions, parse_extensions } f
 export class HandshakeError extends Error {}
 
 export class ServerStream {
-  static buffer_size = 128;
-
   constructor(conn, stream_id, stream_type, socket) {
     this.conn = conn;
     this.stream_id = stream_id;
     this.stream_type = stream_type;
     this.socket = socket;    
-    this.send_buffer = new AsyncQueue(ServerStream.buffer_size);
+    this.send_buffer = new AsyncQueue(options.send_buffer_size);
     this.packets_sent = 0;
   }
 
@@ -74,18 +72,16 @@ export class ServerStream {
       await this.socket.send(data);
 
       this.packets_sent++;
-      if (this.packets_sent % (ServerStream.buffer_size / 2) !== 0) {
+      if (this.stream_type !== stream_types.UDP || this.packets_sent % (options.send_buffer_size / 2) !== 0) {
         continue;
       }
-      if (this.stream_type !== stream_types.UDP) {
-        let packet = new WispPacket({
-          type: ContinuePayload.type,
-          stream_id: this.stream_id,
-          payload: new ContinuePayload({
-            buffer_remaining: ServerStream.buffer_size - this.send_buffer.size
-          })
-        });
-      }
+      let packet = new WispPacket({
+        type: ContinuePayload.type,
+        stream_id: this.stream_id,
+        payload: new ContinuePayload({
+          buffer_remaining: options.send_buffer_size - this.send_buffer.size
+        })
+      });
       this.conn.ws.send(packet);
     }
     await this.close();
@@ -156,7 +152,7 @@ export class ServerConnection {
       type: ContinuePayload.type,
       stream_id: 0,
       payload: new ContinuePayload({
-        buffer_remaining: ServerStream.buffer_size
+        buffer_remaining: options.send_buffer_size
       })
     });
     this.ws.send(continue_packet);

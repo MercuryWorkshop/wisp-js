@@ -25,6 +25,7 @@ export const options = {
   //misc options
   parse_real_ip: true,
   parse_real_ip_from: ["127.0.0.1"],
+  send_buffer_size: 128,
 
   //wisp v2 options
   wisp_version: 2,
