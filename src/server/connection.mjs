@@ -21,9 +21,10 @@ export class HandshakeError extends Error {}
 export class ServerStream {
   static buffer_size = 128;
 
-  constructor(stream_id, conn, socket) {
-    this.stream_id = stream_id;
+  constructor(conn, stream_id, stream_type, socket) {
     this.conn = conn;
+    this.stream_id = stream_id;
+    this.stream_type = stream_type;
     this.socket = socket;    
     this.send_buffer = new AsyncQueue(ServerStream.buffer_size);
     this.packets_sent = 0;
@@ -76,13 +77,15 @@ export class ServerStream {
       if (this.packets_sent % (ServerStream.buffer_size / 2) !== 0) {
         continue;
       }
-      let packet = new WispPacket({
-        type: ContinuePayload.type,
-        stream_id: this.stream_id,
-        payload: new ContinuePayload({
-          buffer_remaining: ServerStream.buffer_size - this.send_buffer.size
-        })
-      });
+      if (this.stream_type !== stream_types.UDP) {
+        let packet = new WispPacket({
+          type: ContinuePayload.type,
+          stream_id: this.stream_id,
+          payload: new ContinuePayload({
+            buffer_remaining: ServerStream.buffer_size - this.send_buffer.size
+          })
+        });
+      }
       this.conn.ws.send(packet);
     }
     await this.close();
@@ -211,7 +214,7 @@ export class ServerConnection {
   create_stream(stream_id, type, hostname, port) {
     let SocketImpl = type === stream_types.TCP ? this.TCPSocket : this.UDPSocket;
     let socket = new SocketImpl(hostname, port);
-    let stream = new ServerStream(stream_id, this, socket);
+    let stream = new ServerStream(this, stream_id, type, socket);
     this.streams[stream_id] = stream;
 
     //start connecting to the destination server in the background
