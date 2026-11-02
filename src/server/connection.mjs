@@ -108,7 +108,7 @@ export class ServerStream {
 }
 
 export class ServerConnection {
-  constructor(ws, path, {TCPSocket, UDPSocket, ping_interval, wisp_version, wisp_extensions} = {}) {
+  constructor(ws, path, {TCPSocket, UDPSocket, ping_interval, wisp_version, wisp_extensions, filter_options} = {}) {
     this.ws = new AsyncWebSocket(ws);
     this.path = path;
     this.TCPSocket = TCPSocket || NodeTCPSocket;
@@ -116,6 +116,7 @@ export class ServerConnection {
     this.ping_interval = ping_interval || 30;
     this.wisp_version = wisp_version || options.wisp_version;
     this.wisp_extensions = wisp_extensions || null;
+    this.filter_options = filter_options || null;
     
     this.ping_task = null;
     this.streams = {};
