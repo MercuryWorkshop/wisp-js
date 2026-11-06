@@ -230,12 +230,22 @@ export class ClientConnection {
   create_stream(hostname, port, type=0x01) {
     let stream_type = type;
     if (typeof stream_type === "string") 
-      stream_type = type === "udp" ? stream_types.UDP : stream_types.TCP;
+      stream_type = stream_types[type.toUpperCase()];
 
+    if (stream_type !== stream_types.TCP && stream_type !== stream_types.UDP) {
+      throw new Error("invalid stream type")
+    }
     if (stream_type == stream_types.UDP && !this.udp_enabled) {
       throw new Error("udp is not enabled for this wisp connection");
     }
+    if (!Number.isInteger(port) || port < 1 || port >= 2**16) {
+      throw new Error("invalid or disallowed port number");
+    }
+    if (typeof hostname !== "string" || hostname.trim().length === 0) {
+      throw new Error("invalid hostname or hostname empty");
+    }
 
+    hostname = hostname.trim()
     const stream_id = this.next_stream_id++;
     const stream = new ClientStream(hostname, port, this.ws, this, stream_id, stream_type, this.max_buffer_size);
     this.active_streams[stream_id] = stream;
