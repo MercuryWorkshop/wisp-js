@@ -218,6 +218,7 @@ export class NodeUDPSocket {
     await new Promise((resolve, reject) => {
       this.socket = dgram.createSocket(ip_level === 6 ? "udp6" : "udp4");
       this.socket.on("connect", () => {
+        this.connected = true;
         resolve();
       });
       this.socket.on("message", (data) => {

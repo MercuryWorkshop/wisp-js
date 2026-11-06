@@ -130,7 +130,7 @@ export class ClientConnection {
       this.onclose();
     };
     this.ws.onerror = () => {
-      if (this.wisp_version === 2) {
+      if (this.wisp_version === 2 && !this.connected) {
         // try falling back to wisp v1 if the server doesn't support v2
         this.ws.onclose = null;
         this.cleanup();

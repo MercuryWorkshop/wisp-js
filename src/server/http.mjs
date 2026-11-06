@@ -36,14 +36,11 @@ export function routeRequest(request, socket, head, conn_options={}) {
       create_connection(ws, request.url, request, conn_options);
     });
   }
-  else if (request instanceof compat.WebSocket) {
-    create_connection(ws, "/", {}), conn_options;
-  }
 }
 
 async function create_connection(ws, path, request, conn_options) {
   ws.binaryType = "arraybuffer";
-  let client_ip = request.socket.address().address;
+  let client_ip = request.socket.remoteAddress;
   let real_ip = parse_real_ip(request.headers, client_ip);
   let origin = request.headers["origin"];
   logging.info(`new connection on ${path} from ${real_ip} (origin: ${origin})`);

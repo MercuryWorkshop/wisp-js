@@ -15,6 +15,7 @@ export class AsyncWebSocket {
     this.ws = ws;
     this.connected = false;
     this.data_queue = new AsyncQueue(1);
+    this.ws.binaryType = "arraybuffer";
   }
 
   async connect() {
@@ -89,7 +90,7 @@ export class AsyncQueue {
   }
 
   async put(data) {
-    if (this.size <= this.max_size) {
+    if (this.size < this.max_size) {
       this.put_now(data);
       return;
     }

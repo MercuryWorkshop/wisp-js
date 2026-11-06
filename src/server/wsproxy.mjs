@@ -46,9 +46,11 @@ export class WSProxyConnection {
     //start the proxy tasks in the background
     this.tcp_to_ws().catch((error) => {
       logging.error(`a tcp to ws task (wsproxy) encountered an error - ${error}`);
+      this.close();
     });
     this.ws_to_tcp().catch((error) => {
       logging.error(`a ws to tcp task (wsproxy) encountered an error - ${error}`);
+      this.close();
     });
   }
 
@@ -62,7 +64,7 @@ export class WSProxyConnection {
       await this.ws.send(data);
       this.socket.resume();
     }
-    await this.ws.close();
+    await this.close();
   }
 
   async ws_to_tcp() {
@@ -74,6 +76,11 @@ export class WSProxyConnection {
       }
       await this.socket.send(data);
     }
-    await this.socket.close();
+    await this.close();
+  }
+
+  async close() {
+    this.socket.close();
+    this.ws.close();
   }
 }
