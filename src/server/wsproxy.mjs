@@ -4,11 +4,26 @@ import { stream_types } from "../packet.mjs";
 import { AsyncWebSocket } from "../websocket.mjs";
 import { NodeTCPSocket, lookup_ip } from "./net.mjs";
 
+import ipaddr from "ipaddr.js";
+
+const target_regex = /^(\[([\da-f:.]+)\]|[a-z0-9-.]+):(\d+)$/i;
+
 export class WSProxyConnection {
   constructor(ws, path) {
-    let [hostname, port] = path.split("/").pop().split(":");
-    this.hostname = hostname.trim();
-    this.port = parseInt(port);
+    let destination = path.split("/").pop();
+    let match = target_regex.exec(destination);
+    if (!match) 
+      throw Error("improperly formatted hostname/port");
+
+    this.hostname = (match[2] || match[1]).trim();
+    this.port = parseInt(match[3]);
+    if (!ipaddr.isValid(this.hostname) && !filter.is_valid_hostname(this.hostname)) {
+      throw Error("invalid hostname");
+    }
+    if (this.port < 1 || this.port >= 2**16) {
+      throw Error("out of range port number");
+    }
+
     this.ws = new AsyncWebSocket(ws);
   }
 

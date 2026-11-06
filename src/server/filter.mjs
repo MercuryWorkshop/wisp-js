@@ -32,6 +32,16 @@ function check_ip_range(ip, range) {
   return range.includes(ip.range());
 }
 
+//test if a hostname is valid under rfc 1123
+export function is_valid_hostname(hostname) {
+  let label_regex = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i;
+  if (hostname.endsWith(".")) 
+    hostname = hostname.slice(0, -1);
+  if (hostname.length > 253 || hostname.length === 0)
+    return false;
+  return hostname.split(".").every(label => label_regex.test(label))
+}
+
 //check if an ip is blocked
 export function is_ip_blocked(ip_str) {
   if (!ipaddr.isValid(ip_str)) 
@@ -41,9 +51,12 @@ export function is_ip_blocked(ip_str) {
   if (ip.range() === "ipv4Mapped") 
     ip = ip.toIPv4Address();
 
+  let blocked_ranges = ["6to4", "teredo"];
   let loopback_ranges = ["loopback", "unspecified"];
-  let private_ranges = ["broadcast", "linkLocal", "carrierGradeNat", "private", "reserved"];
+  let private_ranges = ["broadcast", "linkLocal", "uniqueLocal", "carrierGradeNat", "private", "reserved", "multicast"];
 
+  if (check_ip_range(ip, blocked_ranges))
+    return true;
   if (!options.allow_loopback_ips && check_ip_range(ip, loopback_ranges)) 
     return true;
   if (!options.allow_private_ips && check_ip_range(ip, private_ranges)) 
@@ -83,6 +96,9 @@ export function is_stream_allowed(connection, type, hostname, port, ip_str) {
   if (ipaddr.isValid(hostname)) {
     if (!options.allow_direct_ip)
       return close_reasons.HostBlocked;
+  }
+  else if (!is_valid_hostname(hostname)) {
+    return close_reasons.InvalidInfo;
   }
   if (is_ip_blocked(ip_str)) 
     return close_reasons.HostBlocked;
