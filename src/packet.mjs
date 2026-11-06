@@ -36,7 +36,7 @@ export class WispBuffer {
   }
 
   slice(index, size) {
-    let bytes_slice = this.bytes.slice(index, size);
+    let bytes_slice = this.bytes.slice(index, size == null ? undefined : index + size);
     return new WispBuffer(bytes_slice);
   }
 
