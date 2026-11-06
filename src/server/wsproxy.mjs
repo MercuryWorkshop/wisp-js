@@ -2,7 +2,7 @@ import * as logging from "../logging.mjs";
 import * as filter from "./filter.mjs";
 import { stream_types } from "../packet.mjs";
 import { AsyncWebSocket } from "../websocket.mjs";
-import { NodeTCPSocket } from "./net.mjs";
+import { NodeTCPSocket, lookup_ip } from "./net.mjs";
 
 export class WSProxyConnection {
   constructor(ws, path) {
@@ -16,7 +16,8 @@ export class WSProxyConnection {
     await this.ws.connect();
 
     //check that the destination host/ip is allowed
-    let err_code = await filter.is_stream_allowed(null, stream_types.TCP, this.hostname, this.port);
+    let ip_str = await lookup_ip(this.hostname);
+    let err_code = filter.is_stream_allowed(null, stream_types.TCP, this.hostname, this.port, ip_str);
     if (err_code !== 0) {
       logging.info(`Refusing to create a wsproxy connection to ${this.hostname}:${this.port}`);
       this.ws.close();
@@ -25,7 +26,7 @@ export class WSProxyConnection {
 
     //connect to the tcp host after we are certain that it's safe to do so
     this.socket = new NodeTCPSocket(this.hostname, this.port);
-    await this.socket.connect();
+    await this.socket.connect(ip_str);
 
     //start the proxy tasks in the background
     this.tcp_to_ws().catch((error) => {

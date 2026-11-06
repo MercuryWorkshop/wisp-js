@@ -1,7 +1,7 @@
 import * as logging from "../logging.mjs";
 import * as filter from "./filter.mjs";
 import { AsyncQueue, AsyncWebSocket, get_conn_id } from "../websocket.mjs";
-import { NodeTCPSocket, NodeUDPSocket } from "./net.mjs";
+import { lookup_ip, NodeTCPSocket, NodeUDPSocket } from "./net.mjs";
 import { 
   WispBuffer,
   WispPacket,
@@ -28,8 +28,8 @@ export class ServerStream {
     this.packets_sent = 0;
   }
 
-  async setup() {
-    await this.socket.connect();
+  async setup(ip_str) {
+    await this.socket.connect(ip_str);
 
     //start the proxy tasks in the background
     this.tcp_to_ws().catch((error) => {
@@ -221,14 +221,15 @@ export class ServerConnection {
 
     //start connecting to the destination server in the background
     (async () => {
-      let close_reason = await filter.is_stream_allowed(this, type, hostname, port);
-      if (close_reason) {
-        logging.warn(`(${this.conn_id}) refusing to create a stream to ${hostname}:${port}`);
-        await this.close_stream(stream_id, close_reason, true);
-        return;
-      }
       try {
-        await stream.setup();
+        let ip_str = await lookup_ip(hostname);
+        let close_reason = filter.is_stream_allowed(this, type, hostname, port, ip_str);
+        if (close_reason) {
+          logging.warn(`(${this.conn_id}) refusing to create a stream to ${hostname}:${port}`);
+          await this.close_stream(stream_id, close_reason, true);
+          return;
+        }
+        await stream.setup(ip_str);
       }
       catch (error) {
         logging.warn(`(${this.conn_id}) creating a stream to ${hostname}:${port} failed - ${error}`);

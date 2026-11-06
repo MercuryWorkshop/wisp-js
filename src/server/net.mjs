@@ -92,7 +92,7 @@ export async function lookup_ip(hostname) {
   let now = Date.now();
   for (let [entry_hostname, cache_entry] of dns_cache) {
     let ttl = now - cache_entry.time;
-    if (ttl > options.dns_ttl) {
+    if (ttl > options.dns_ttl * 1000) {
       dns_cache.delete(entry_hostname);
     }
   }
@@ -104,6 +104,10 @@ export async function lookup_ip(hostname) {
       throw cache_entry.error
     return cache_entry.address;
   }
+
+  //evict oldest entry if cache is full
+  if (dns_cache.size >= options.dns_cache_size) 
+    dns_cache.delete(dns_cache.keys().next().value);
 
   //try to perform the actual dns lookup and store the result
   let address;
@@ -134,8 +138,8 @@ export class NodeTCPSocket {
     this.data_queue = new AsyncQueue(this.recv_buffer_size);
   }
 
-  async connect() {
-    let ip = await lookup_ip(this.hostname);
+  async connect(ip_override = null) {
+    let ip = ip_override ?? await lookup_ip(this.hostname);
     await new Promise((resolve, reject) => {
       this.socket = new net.Socket();
       this.socket.setNoDelay(true);
@@ -208,8 +212,8 @@ export class NodeUDPSocket {
     this.data_queue = new AsyncQueue(this.recv_buffer_size);
   }
 
-  async connect() {
-    let ip = await lookup_ip(this.hostname);
+  async connect(ip_override = null) {
+    let ip = ip_override ?? await lookup_ip(this.hostname);
     let ip_level = net.isIP(ip);
     await new Promise((resolve, reject) => {
       this.socket = dgram.createSocket(ip_level === 6 ? "udp6" : "udp4");

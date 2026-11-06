@@ -18,6 +18,7 @@ export const options = {
 
   //dns options
   dns_ttl: 120,
+  dns_cache_size: 4096,
   dns_method: "lookup",
   dns_servers: null,
   dns_result_order: "verbatim",

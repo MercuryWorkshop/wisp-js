@@ -52,7 +52,7 @@ export function is_ip_blocked(ip_str) {
 }
 
 //returns the close reason if the connection should be blocked
-export async function is_stream_allowed(connection, type, hostname, port) {
+export function is_stream_allowed(connection, type, hostname, port, ip_str) {
   //check if tcp or udp should be blocked
   if (!options.allow_tcp_streams && type === stream_types.TCP)
     return close_reasons.HostBlocked;
@@ -80,16 +80,9 @@ export async function is_stream_allowed(connection, type, hostname, port) {
   }
 
   //check if the destination ip is blocked
-  let ip_str = hostname;
   if (ipaddr.isValid(hostname)) {
     if (!options.allow_direct_ip)
       return close_reasons.HostBlocked;
-  }
-  else {
-    try { //look up the ip to make sure that the resolved address is allowed
-      ip_str = await net.lookup_ip(hostname);
-    }
-    catch {}
   }
   if (is_ip_blocked(ip_str)) 
     return close_reasons.HostBlocked;
