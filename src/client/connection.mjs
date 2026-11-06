@@ -32,8 +32,11 @@ class ClientStream {
   }
 
   send(data) {
+    if (!this.open) 
+      throw Error("cannot send when stream is closed");
+
     //note: udp shouldn't buffer anything
-    if (this.buffer_size > 0 || !this.open || this.stream_type === stream_types.UDP) {
+    if (this.buffer_size > 0 || this.stream_type === stream_types.UDP) {
       //construct and send a DATA packet
       let packet = new WispPacket({
         type: packet_types.DATA,
@@ -59,19 +62,13 @@ class ClientStream {
     }
   }
 
-  //construct and send a CLOSE packet
-  close(reason = 0x01) {
-    if (!this.open) return;
-    let packet = new WispPacket({
-      type: packet_types.CLOSE,
-      stream_id: this.stream_id,
-      payload: new ClosePayload({
-        reason: reason
-      })
-    });
-    this.ws.send(packet.serialize().bytes);
+  close_buffers() {
     this.open = false;
-    delete this.connection.active_streams[this.stream_id];
+    this.send_buffer = [];
+  }
+
+  close(reason = 0x01) {
+    this.connection.close_stream(this, reason);
   }
 }
 
@@ -207,7 +204,7 @@ export class ClientConnection {
     }
 
     else if (packet.type === packet_types.CLOSE) {
-      this.close_stream(stream, packet.payload.reason);
+      this.close_stream(stream, packet.payload.reason, false);
     }
 
     else {
@@ -223,7 +220,7 @@ export class ClientConnection {
     this.connected = false;
     this.connecting = false;
     for (let stream_id of Object.keys(this.active_streams)) {
-      this.close_stream(this.active_streams[stream_id], 0x03);
+      this.close_stream(this.active_streams[stream_id], 0x03, false);
     }
   }
 
@@ -265,9 +262,21 @@ export class ClientConnection {
     return stream;
   }
 
-  close_stream(stream, reason) {
-    stream.onclose(reason);
+  close_stream(stream, reason = null, send_packet = true) {
+    if (!this.active_streams[stream.stream_id]) 
+      return;
     delete this.active_streams[stream.stream_id];
+    stream.close_buffers();
+    stream.onclose(reason);
+
+    if (!reason || !send_packet) 
+      return;
+    let packet = new WispPacket({
+      type: packet_types.CLOSE, 
+      stream_id: stream.stream_id, 
+      payload: new ClosePayload({reason})
+    });
+    this.ws.send(packet.serialize().bytes);
   }
 }
 
