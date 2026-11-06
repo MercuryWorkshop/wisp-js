@@ -2,6 +2,7 @@
 - Fix packet parsing, flow control, and handshake bugs on the client and server
 - Fix DNS, IP filtering, hostname, and proxy URL handling on the server
 - Fix client WebSocket polyfill compatibility and add logging to the root exports
+- Fix wsproxy sending data
 
 ## v0.5.2 (11/1/26):
 - Fix bugs relating to continue packet handling

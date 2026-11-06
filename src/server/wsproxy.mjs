@@ -1,7 +1,7 @@
 import * as logging from "../logging.mjs";
 import * as filter from "./filter.mjs";
 import { stream_types } from "../packet.mjs";
-import { AsyncWebSocket } from "../websocket.mjs";
+import { AsyncWebSocket, get_conn_id } from "../websocket.mjs";
 import { NodeTCPSocket, lookup_ip } from "./net.mjs";
 
 import ipaddr from "ipaddr.js";
@@ -25,6 +25,7 @@ export class WSProxyConnection {
     }
 
     this.ws = new AsyncWebSocket(ws);
+    this.conn_id = get_conn_id();
   }
 
   async setup() {
@@ -34,7 +35,7 @@ export class WSProxyConnection {
     let ip_str = await lookup_ip(this.hostname);
     let err_code = filter.is_stream_allowed(null, stream_types.TCP, this.hostname, this.port, ip_str);
     if (err_code !== 0) {
-      logging.info(`Refusing to create a wsproxy connection to ${this.hostname}:${this.port}`);
+      logging.info(`(${this.conn_id}) refusing to create a wsproxy connection to ${this.hostname}:${this.port}`);
       this.ws.close();
       throw new filter.AccessDeniedError();
     }
@@ -45,11 +46,11 @@ export class WSProxyConnection {
 
     //start the proxy tasks in the background
     this.tcp_to_ws().catch((error) => {
-      logging.error(`a tcp to ws task (wsproxy) encountered an error - ${error}`);
+      logging.error(`(${this.conn_id}) a tcp to ws task (wsproxy) encountered an error - ${error}`);
       this.close();
     });
     this.ws_to_tcp().catch((error) => {
-      logging.error(`a ws to tcp task (wsproxy) encountered an error - ${error}`);
+      logging.error(`(${this.conn_id}) a ws to tcp task (wsproxy) encountered an error - ${error}`);
       this.close();
     });
   }
@@ -69,12 +70,15 @@ export class WSProxyConnection {
 
   async ws_to_tcp() {
     while (true) {
-      let data;
-      data = await this.ws.recv();
+      let data = await this.ws.recv();
+      if (typeof data === "string") {
+        logging.warn(`(${this.conn_id}) routing a packet failed - unexpected ws text frame`);
+        continue;
+      }
       if (data == null) {
         break; //websocket closed
       }
-      await this.socket.send(data);
+      await this.socket.send(new Uint8Array(data));
     }
     await this.close();
   }

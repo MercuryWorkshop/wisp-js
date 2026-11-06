@@ -97,7 +97,8 @@ export class ServerStream {
   }
 
   async put_data(data) {
-    if (this.send_buffer.put_callbacks.length > 3) {
+    //kill a stream from a misbehaving client that is sending extra data when the buffer is full
+    if (this.send_buffer.put_callbacks.length > options.send_buffer_size) {
       await this.close(close_reasons.ConnThrottled);
       return;
     }
