@@ -92,14 +92,7 @@ export class ServerStream {
     this.socket.close();
     if (reason == null) return;
 
-    let packet = new WispPacket({
-      type: ClosePayload.type,
-      stream_id: this.stream_id,
-      payload: new ClosePayload({
-        reason: reason
-      })
-    });
-    await this.conn.ws.send(packet);
+    await this.conn.send_close_packet(this.stream_id, reason);
   }
 
   async put_data(data) {
@@ -247,13 +240,30 @@ export class ServerConnection {
     let packet = WispPacket.parse_all(buffer);
     let stream = this.streams[packet.stream_id];
 
+    if (packet.stream_id === 0) {
+      logging.warn(`(${this.conn_id}) recieved packet with stream ID 0 after handshake`)
+      return;
+    }
+
     if (stream == null && packet.type == DataPayload.type) {
       logging.warn(`(${this.conn_id}) received a DATA packet for a stream which doesn't exist`);
       return;
     }
 
     if (packet.type === ConnectPayload.type) {
-      let type_info = packet.payload.stream_type === stream_types.TCP ? "TCP" : "UDP";
+      if (stream) {
+        logging.warn(`(${this.conn_id}) received a CONNECT packet for a stream which already exists`);
+        return;
+      }
+
+      let stream_type = packet.payload.stream_type;
+      if (stream_type != stream_types.TCP && stream_type != stream_types.UDP) {
+        logging.warn(`(${this.conn_id}) received a CONNECT packet with an invalid stream ID`);
+        this.send_close_packet(packet.stream_id, close_reasons.InvalidInfo);
+        return;
+      }
+
+      let type_info = stream_type === stream_types.TCP ? "TCP" : "UDP";
       logging.info(`(${this.conn_id}) opening new ${type_info} stream to ${packet.payload.hostname}:${packet.payload.port}`);
       this.create_stream(
         packet.stream_id, 
@@ -274,6 +284,17 @@ export class ServerConnection {
     else if (packet.type == ClosePayload.type) {
       this.close_stream(packet.stream_id, packet.reason);
     }
+  }
+
+  async send_close_packet(stream_id, reason) {
+    let packet = new WispPacket({
+      type: ClosePayload.type,
+      stream_id: stream_id,
+      payload: new ClosePayload({
+        reason: reason
+      })
+    });
+    await this.ws.send(packet);
   }
 
   async run() {

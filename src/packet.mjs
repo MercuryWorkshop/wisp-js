@@ -69,7 +69,7 @@ export class WispPacket {
     if (typeof payload_class === "undefined") {
       throw TypeError("invalid packet type");
     }
-    if (packet.payload_bytes.size < payload_class.size) {
+    if (packet.payload_bytes.size < payload_class.min_payload_size) {
       throw TypeError("payload too small");
     }
     packet.payload = payload_class.parse(packet.payload_bytes);
@@ -85,7 +85,7 @@ export class WispPacket {
 }
 
 export class ConnectPayload {
-  static min_size = 3;
+  static min_payload_size = 3;
   static type = 0x01;
   static name = "CONNECT";
   constructor({stream_type, port, hostname}) {
@@ -110,7 +110,7 @@ export class ConnectPayload {
 }
 
 export class DataPayload {
-  static min_size = 0;
+  static min_payload_size = 0;
   static type = 0x02;
   static name = "DATA";
   constructor({data}) {
@@ -127,6 +127,7 @@ export class DataPayload {
 }
 
 export class ContinuePayload {
+  static min_payload_size = 4;
   static type = 0x03;
   static name = "CONTINUE";
   constructor({buffer_remaining}) {
@@ -145,7 +146,7 @@ export class ContinuePayload {
 }
 
 export class ClosePayload {
-  static min_size = 1;
+  static min_payload_size = 1;
   static type = 0x04;
   static name = "CLOSE";
   constructor({reason}) {
@@ -164,7 +165,7 @@ export class ClosePayload {
 }
 
 export class InfoPayload {
-  static min_size = 2;
+  static min_payload_size = 2;
   static type = 0x05;
   static name = "INFO";
   constructor({major_ver, minor_ver, extensions}) {
