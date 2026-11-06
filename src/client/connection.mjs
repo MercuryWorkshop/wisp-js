@@ -46,7 +46,8 @@ class ClientStream {
         })
       });
       this.ws.send(packet.serialize().bytes);
-      this.buffer_size--;
+      if (this.stream_type === stream_types.TCP)
+        this.buffer_size--;
     }
     else { //server is slow, don't send data yet
       this.send_buffer.push(data);

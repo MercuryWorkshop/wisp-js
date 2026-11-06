@@ -225,6 +225,7 @@ To change settings globally for the Wisp server, you can use the `wisp.options` 
 
 **DNS Settings:**
 - `options.dns_ttl` - The time to live for cached DNS responses, in seconds. Defaults to `120` seconds.
+- `options.dns_cache_size` - The max number of entries in the DNS cache. Defaults to `4096`.
 - `options.dns_method` - The method to use for DNS resolution. This is either `"lookup"`, which uses the system DNS, or `"resolve"`, which uses the Node `dns.resolve` functions. This may also be a custom async function, which takes the hostname as its only argument and returns the resolved IP address. Defaults to `"lookup"`.
 - `options.dns_servers` - A [list of strings containing IP addresses](https://nodejs.org/api/dns.html#dnspromisessetserversservers) for custom DNS servers. This is only used if `dns_method` is set to `"resolve"`. By default, this is unset, and DNS queries will use the system DNS servers.
 - `options.dns_result_order` - Controls whether or not IPv4 or IPv6 addresses are prioritized. This can be either `"ipv4first"`, `"ipv6first"`, or `"verbatim"`. `"verbatim"` uses the original order that the system DNS returns the results in, and only has special meaning if the DNS method is `"lookup"`. If the DNS method is `"resolve"`, `"verbatim"` is treated the same as `"ipv6first"`. Defaults to `"verbatim"`.
