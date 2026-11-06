@@ -72,7 +72,7 @@ export class ServerStream {
       await this.socket.send(data);
 
       this.packets_sent++;
-      if (this.stream_type !== stream_types.UDP || this.packets_sent % (options.send_buffer_size / 2) !== 0) {
+      if (this.stream_type !== stream_types.TCP || this.packets_sent % (options.send_buffer_size / 2) !== 0) {
         continue;
       }
       let packet = new WispPacket({
@@ -87,15 +87,20 @@ export class ServerStream {
     await this.close();
   }
 
-  async close(reason = null) {
+  async close_buffers() {
     this.send_buffer.close();
     this.socket.close();
-    if (reason == null) return;
+  }
 
-    await this.conn.send_close_packet(this.stream_id, reason);
+  async close(reason) {
+    await this.conn.close_stream(this.stream_id, reason);
   }
 
   async put_data(data) {
+    if (this.send_buffer.put_callbacks.length > 3) {
+      await this.close(close_reasons.ConnThrottled);
+      return;
+    }
     await this.send_buffer.put(data);
   }
 }
@@ -137,7 +142,14 @@ export class ServerConnection {
 
     await this.ws.connect();
     if (this.wisp_version == 2) {
-      await this.setup_wisp_v2()
+      try {
+        await this.setup_wisp_v2()
+      }
+      catch (e) {
+        logging.warn(`(${this.conn_id}) error during wisp v2 handshake: ${e}`);
+        await this.cleanup();
+        throw e;
+      }
     }
 
     //send initial continue packet
@@ -173,19 +185,20 @@ export class ServerConnection {
     this.ws.send(info_packet);
 
     //wait for the client's info packet
-    let data = await this.ws.recv();
+    let data = await Promise.race([
+      this.ws.recv(),
+      new Promise((resolve, reject) => {
+        setTimeout(() => reject(new HandshakeError("handshake timed out")), 10000)
+      })
+    ]);
     if (data == null) {
-      logging.warn(`(${this.conn_id}) handshake error: ws closed before handshake complete`);
-      await this.cleanup();
-      throw new HandshakeError();
+      throw new HandshakeError(`ws closed before handshake complete`);
     }
     let buffer = new WispBuffer(new Uint8Array(data));
     let packet = WispPacket.parse_all(buffer);
 
     if (packet.type !== InfoPayload.type) {
-      logging.warn(`(${this.conn_id}) handshake error: unexpected packet of type ${packet.type}`);
-      await this.cleanup();
-      throw new HandshakeError();
+      throw new HandshakeError(`unexpected packet of type ${packet.type}`);
     }
 
     //figure out the common extensions
@@ -224,16 +237,17 @@ export class ServerConnection {
     })();
   }
 
-  async close_stream(stream_id, reason = null, quiet = false) {
+  async close_stream(stream_id, reason = null, send_packet = true) {
     let stream = this.streams[stream_id];
-    if (stream == null) {
+    if (stream == null)
       return;
-    }
-    if (reason && !quiet) {
+    if (reason)
       logging.info(`(${this.conn_id}) closing stream to ${stream.socket.hostname} for reason ${reason}`);
-    }
-    await stream.close(reason);
+
     delete this.streams[stream_id];
+    await stream.close_buffers();
+    if (reason && send_packet)
+      await this.send_close_packet(stream_id, reason);
   }
 
   route_packet(buffer) {
@@ -282,7 +296,7 @@ export class ServerConnection {
     }
 
     else if (packet.type == ClosePayload.type) {
-      this.close_stream(packet.stream_id, packet.reason);
+      this.close_stream(packet.stream_id, packet.payload.reason, false);
     }
   }
 
@@ -291,7 +305,7 @@ export class ServerConnection {
       type: ClosePayload.type,
       stream_id: stream_id,
       payload: new ClosePayload({
-        reason: reason
+        reason: reason || 0x01
       })
     });
     await this.ws.send(packet);

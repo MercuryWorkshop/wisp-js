@@ -74,12 +74,16 @@ export class AsyncWebSocket {
 export class AsyncQueue {
   constructor(max_size) {
     this.max_size = max_size;
+    this.closed = false;
     this.queue = [];
     this.put_callbacks = [];
     this.get_callbacks = [];
   }
 
   put_now(data) {
+    if (this.closed) {
+      return;
+    }
     this.queue.push(data);
     this.get_callbacks.shift()?.();
   }
@@ -103,6 +107,9 @@ export class AsyncQueue {
   }
 
   async get() {
+    if (this.closed) {
+      return;
+    }
     if (this.size > 0) {
       return this.get_now();
     }
@@ -116,6 +123,7 @@ export class AsyncQueue {
 
   close() {
     this.queue = [];
+    this.closed = true;
     let callback;
     //resolve all pending operations
     while (callback = this.get_callbacks.shift())
